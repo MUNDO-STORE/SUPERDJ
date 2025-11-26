@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Notificação com Som</title>
+
+<style>
+    .notification {
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        background: #ffffff;
+        color: #000;
+        padding: 15px 20px;
+        border-radius: 12px;
+        font-size: 16px;
+        display: none;
+        align-items: center;
+        gap: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+        animation: fadeInOut 5s ease;
+        font-family: Arial, sans-serif;
+        z-index: 99999;
+        max-width: 90%;
+    }
+
+    .notif-img {
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid #eee;
+    }
+
+    .notif-text {
+        font-weight: bold;
+    }
+
+    @keyframes fadeInOut {
+        0% {opacity: 0; transform: translateY(20px);}
+        10% {opacity: 1; transform: translateY(0);}
+        80% {opacity: 1;}
+        100% {opacity: 0; transform: translateY(20px);}
+    }
+
+    /* 📱 MOBILE OTIMIZADO */
+    @media (max-width: 600px) {
+        .notification {
+            bottom: 10px;
+            left: 10px;
+            padding: 10px 14px;
+            border-radius: 10px;
+            font-size: 14px;
+            gap: 10px;
+        }
+
+        .notif-img {
+            width: 38px;
+            height: 38px;
+        }
+    }
+</style>
+
+</head>
+<body>
+
+<!-- 🔊 SOM DA NOTIFICAÇÃO -->
+<audio id="sound" preload="auto">
+    <source src="https://www.myinstants.com/media/sounds/cash-register.mp3" type="audio/mpeg">
+</audio>
+
+<!-- NOTIFICAÇÃO -->
+<div id="notif" class="notification">
+    <img id="notifImg" class="notif-img" src="" alt="">
+    <div class="notif-text">
+        <span id="notifName"></span> realizou uma compra!
+    </div>
+</div>
+
+
+<script>
+
+    // Escolhe aleatoriamente qual tipo de nome usar
+    async function gerarNomeAleatorio() {
+        const modos = ["brasil", "estrangeiro-m", "estrangeiro-f"];
+        const modo = modos[Math.floor(Math.random() * modos.length)];
+
+        switch(modo) {
+
+            // 🇧🇷 NOMES BRASILEIROS REAIS – API IBGE
+            case "brasil":
+                try {
+                    const req = await fetch("https://servicodados.ibge.gov.br/api/v2/censos/nomes/ranking");
+                    const data = await req.json();
+                    const lista = data[0].res;
+
+                    const item = lista[Math.floor(Math.random() * lista.length)].nome;
+
+                    const sobrenomes = [
+                        "Silva", "Souza", "Ferreira", "Almeida", "Mendes",
+                        "Castro", "Ribeiro", "Gomes", "Carvalho", "Dias"
+                    ];
+
+                    const sobrenome = sobrenomes[Math.floor(Math.random() * sobrenomes.length)];
+
+                    return { 
+                        nome: item + " " + sobrenome,
+                        foto: gerarFotoFallback()
+                    };
+
+                } catch(e) {
+                    return {
+                        nome: "Cliente Brasileiro",
+                        foto: gerarFotoFallback()
+                    };
+                }
+
+            // 🌍 NOMES ESTRANGEIROS (MASCULINO)
+            case "estrangeiro-m":
+                return await gerarRandomUser("male");
+
+            // 🌍 NOMES ESTRANGEIROS (FEMININO)
+            case "estrangeiro-f":
+                return await gerarRandomUser("female");
+        }
+    }
+
+
+    // RandomUser – nomes e fotos reais
+    async function gerarRandomUser(genero) {
+        const req = await fetch(`https://randomuser.me/api/?gender=${genero}&nat=us,ca,gb,au`);
+        const data = await req.json();
+        const u = data.results[0];
+
+        return {
+            nome: `${u.name.first} ${u.name.last}`,
+            foto: u.picture.medium
+        };
+    }
+
+    // Foto fallback
+    function gerarFotoFallback() {
+        const fotos = [
+            "https://randomuser.me/api/portraits/men/11.jpg",
+            "https://randomuser.me/api/portraits/men/43.jpg",
+            "https://randomuser.me/api/portraits/women/22.jpg",
+            "https://randomuser.me/api/portraits/women/50.jpg",
+            "https://randomuser.me/api/portraits/men/31.jpg"
+        ];
+        return fotos[Math.floor(Math.random() * fotos.length)];
+    }
+
+
+    // MOSTRAR NOTIFICAÇÃO
+    async function mostrarNotificacao() {
+        try {
+            const { nome, foto } = await gerarNomeAleatorio();
+
+            document.getElementById("notifName").innerText = nome;
+            document.getElementById("notifImg").src = foto;
+
+            const caixa = document.getElementById("notif");
+            caixa.style.display = "flex";
+
+            // 🔊 SOM
+            const audio = document.getElementById("sound");
+            audio.currentTime = 0;
+            audio.play().catch(() => {});
+
+            setTimeout(() => {
+                caixa.style.display = "none";
+            }, 5005);
+
+        } catch(e) {
+            console.log("Erro:", e);
+        }
+    }
+
+    // Primeira notificação ao carregar
+    mostrarNotificacao();
+
+    // A cada 1 minuto
+    setInterval(mostrarNotificacao, 60000);
+
+</script>
+
+</body>
+</html>
